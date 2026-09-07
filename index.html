@@ -7560,7 +7560,7 @@ header .header-actions{
   const KEYS=new Set([STATE,EXTRA,SETTINGS]);
   let saveTimer=0, saving=false, dirty=false, lastHash='', publicHash='';
 
-  const admin=()=>{try{return sessionStorage.getItem('florelaAdminUnlocked')==='1'}catch(e){return false}};
+  const admin=()=>{try{return sessionStorage.getItem('florelaAdminUnlocked')==='1'||!!document.querySelector('#flAdminV2.open,#florelaAdminPanel.open')}catch(e){try{return !!document.querySelector('#flAdminV2.open,#florelaAdminPanel.open')}catch(_){return false}}};
   const parse=(v,f={})=>{try{const x=JSON.parse(v);return x==null?f:x}catch(e){return f}};
   const read=(k,f={})=>parse(localStorage.getItem(k)||'null',f);
   const uniq=a=>[...new Set((a||[]).filter(x=>typeof x==='string'&&x.trim()).map(x=>x.trim()))];
@@ -7733,6 +7733,21 @@ header .header-actions{
   });
   window.__florelaCloudSaveV32=save;
   window.__florelaMigrateLocalProductPhotos=migrateLocalProductPhotos;
+
+  // V33 FIX: the current admin panel does not set the historical
+  // `florelaAdminUnlocked` session flag. Detect the real open panel instead
+  // and bootstrap the cloud automatically as soon as the administrator opens it.
+  try{
+    const adminPanels=['#flAdminV2','#florelaAdminPanel'];
+    const bootstrapIfOpen=()=>{
+      if(adminPanels.some(sel=>document.querySelector(sel+'.open'))){
+        setTimeout(()=>save('admin-panel-open-bootstrap'),120);
+      }
+    };
+    const mo=new MutationObserver(bootstrapIfOpen);
+    mo.observe(document.body,{subtree:true,attributes:true,attributeFilter:['class','aria-hidden']});
+    bootstrapIfOpen();
+  }catch(e){console.warn('[FlorEla V33] admin bootstrap observer',e)}
 
   async function publicPull(reason='public'){
     if(admin())return false;
