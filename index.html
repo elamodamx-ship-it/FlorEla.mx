@@ -15,9 +15,9 @@
        bootstrap depended on /api/florela-state, but production was deployed as
        a static upload and that route did not exist, causing an avoidable 404. */
     var xhr = new XMLHttpRequest();
-    xhr.open('GET','https://xojjvlsajeankxkbprtf.supabase.co/rest/v1/florela_app_state?id=eq.main&select=data,updated_at&_='+Date.now(),false);
-    xhr.setRequestHeader('apikey','sb_publishable_z39r8z1559VQia5RQKkZ4Q_Oh6d_DYn');
-    xhr.setRequestHeader('Authorization','Bearer sb_publishable_z39r8z1559VQia5RQKkZ4Q_Oh6d_DYn');
+    xhr.open('GET','https://jacswijucxvvoyhjdkkb.supabase.co/rest/v1/florela_app_state?id=eq.main&select=data,updated_at&_='+Date.now(),false);
+    xhr.setRequestHeader('apikey','sb_publishable_wTIQv46TIPUGOuVj_dIDaw_AhMOdKee');
+    xhr.setRequestHeader('Authorization','Bearer sb_publishable_wTIQv46TIPUGOuVj_dIDaw_AhMOdKee');
     xhr.setRequestHeader('Accept','application/json');
     xhr.setRequestHeader('Cache-Control','no-cache');
     xhr.send(null);
@@ -7518,10 +7518,10 @@ header .header-actions{
 (function(){
   'use strict';
   const STATE='florelaAdminV2Data', EXTRA='florelaEditableTextsV2';
-  const REST='https://xojjvlsajeankxkbprtf.supabase.co/rest/v1/florela_app_state';
-  const RPC='https://xojjvlsajeankxkbprtf.supabase.co/rest/v1/rpc/florela_save_state';
-  const UPLOAD='https://xojjvlsajeankxkbprtf.supabase.co/functions/v1/florela-sync';
-  const KEY='sb_publishable_z39r8z1559VQia5RQKkZ4Q_Oh6d_DYn';
+  const REST='https://jacswijucxvvoyhjdkkb.supabase.co/rest/v1/florela_app_state';
+  const RPC='https://jacswijucxvvoyhjdkkb.supabase.co/rest/v1/rpc/florela_save_state';
+  const UPLOAD='https://jacswijucxvvoyhjdkkb.supabase.co/functions/v1/florela-sync';
+  const KEY='sb_publishable_wTIQv46TIPUGOuVj_dIDaw_AhMOdKee';
   const TOKEN='florela-web-sync-v1';
   const KEYS=new Set([STATE,EXTRA]);
   let saveTimer=0, saving=false, dirty=false, lastHash='', publicHash='';
