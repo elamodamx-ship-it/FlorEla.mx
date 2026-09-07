@@ -46,8 +46,17 @@
             return p;
           });
         }
-        localStorage.setItem('florelaAdminV2Data', JSON.stringify(d));
-        localStorage.setItem('florelaEditableTextsV2', JSON.stringify(cloudExtra));
+        /* IMPORTANT: an empty/new cloud must never erase a populated admin browser.
+           The first admin browser is allowed to bootstrap the cloud from its local
+           catalog; once the cloud has real data, it becomes authoritative. */
+        var localBefore = {};
+        try { localBefore = JSON.parse(localStorage.getItem('florelaAdminV2Data') || '{}') || {}; } catch(e) {}
+        var cloudHasRealData = !!(d && ((Array.isArray(d.products) && d.products.length) || Object.keys(d).length > 3 || Object.keys(cloudExtra).length));
+        var localHasRealData = !!(localBefore && ((Array.isArray(localBefore.products) && localBefore.products.length) || Object.keys(localBefore).length > 3));
+        if (!isAdmin || cloudHasRealData || !localHasRealData) {
+          localStorage.setItem('florelaAdminV2Data', JSON.stringify(d));
+          localStorage.setItem('florelaEditableTextsV2', JSON.stringify(cloudExtra));
+        }
         var legacy = Object.assign({}, d, {
           heroDesc: d.heroDesc != null ? d.heroDesc : d.heroSub,
           heroEyebrow: d.heroEyebrow != null ? d.heroEyebrow : 'FLORELA',
@@ -2919,7 +2928,9 @@ document.querySelectorAll('.product-card').forEach(card=>{
   s=Object.assign(s,map);
   localStorage.setItem(KEY,JSON.stringify(s));
   apply();
-  const b=$("flAdminSave"); if(b){const old=b.textContent;b.textContent="✓ Guardado";setTimeout(()=>b.textContent=old,1300)}
+  const b=$("flAdminSave"); if(b){const old=b.textContent;b.textContent="☁️ Guardando…";setTimeout(()=>{if(b)b.textContent=old},1800)}
+  /* The visible admin Save button now also commits the complete state to the cloud. */
+  setTimeout(()=>{try{window.__florelaCloudSaveV32?.('admin-save-button')}catch(e){console.error('[FlorEla] cloud save button',e)}},0);
  }
  function load(){
   set("admBrand",s.brand);set("admSlogan",s.slogan);set("admWelcome",s.welcome);
@@ -7517,13 +7528,13 @@ header .header-actions{
 <script id="florela-cloud-core-v32">
 (function(){
   'use strict';
-  const STATE='florelaAdminV2Data', EXTRA='florelaEditableTextsV2';
+  const STATE='florelaAdminV2Data', EXTRA='florelaEditableTextsV2', SETTINGS='florelaAdminSettingsV1';
   const REST='https://jacswijucxvvoyhjdkkb.supabase.co/rest/v1/florela_app_state';
   const RPC='https://jacswijucxvvoyhjdkkb.supabase.co/rest/v1/rpc/florela_save_state';
   const UPLOAD='https://jacswijucxvvoyhjdkkb.supabase.co/functions/v1/florela-sync';
   const KEY='sb_publishable_wTIQv46TIPUGOuVj_dIDaw_AhMOdKee';
   const TOKEN='florela-web-sync-v1';
-  const KEYS=new Set([STATE,EXTRA]);
+  const KEYS=new Set([STATE,EXTRA,SETTINGS]);
   let saveTimer=0, saving=false, dirty=false, lastHash='', publicHash='';
 
   const admin=()=>{try{return sessionStorage.getItem('florelaAdminUnlocked')==='1'}catch(e){return false}};
@@ -7547,8 +7558,9 @@ header .header-actions{
   function snapshot(){
     let main=normalizeMain(read(STATE,{}));
     let extra=read(EXTRA,{});
+    let settings=read(SETTINGS,{});
     if(main.extra&&typeof main.extra==='object'){extra=Object.assign({},main.extra,extra||{});delete main.extra;}
-    return {main,extra:(extra&&typeof extra==='object')?extra:{}};
+    return {main,extra:(extra&&typeof extra==='object')?extra:{},settings:(settings&&typeof settings==='object')?settings:{}};
   }
   function hash(x){try{return JSON.stringify(x)}catch(e){return String(Date.now())}}
   function status(text,ok=true){
@@ -7576,8 +7588,13 @@ header .header-actions{
       const r=await fetch(RPC,{method:'POST',cache:'no-store',headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json',Accept:'application/json','Prefer':'return=representation'},body:JSON.stringify({p_id:'main',p_data:data,p_token:TOKEN})});
       const t=await r.text(); let j=null; try{j=JSON.parse(t)}catch(e){}
       if(!r.ok||j?.ok===false)throw new Error(j?.error||j?.message||t||('HTTP '+r.status));
+      /* Verify the write against Supabase before telling the administrator it worked. */
+      const vr=await fetch(REST+'?id=eq.main&select=data,updated_at&_='+Date.now(),{cache:'no-store',headers:{apikey:KEY,Authorization:'Bearer '+KEY,Accept:'application/json','Cache-Control':'no-cache'}});
+      const vrows=await vr.json().catch(()=>[]);
+      if(!vr.ok||!Array.isArray(vrows)||!vrows[0]||hash(vrows[0].data)!==hash(data)) throw new Error('La nube no confirmó el estado guardado');
       lastHash=h;status('✓ Guardado en la nube',true);
-      window.dispatchEvent(new CustomEvent('florela-cloud-saved',{detail:{reason}}));
+      const b=document.getElementById('flAdminSave'); if(b){const old=b.textContent;b.textContent='☁️ ✓ Guardado en la nube';setTimeout(()=>{if(b)b.textContent=old},3500)}
+      window.dispatchEvent(new CustomEvent('florela-cloud-saved',{detail:{reason,updated_at:vrows[0].updated_at}}));
       return true;
     }catch(e){console.error('[FlorEla V32] cloud save',e);status('⚠️ Error al guardar en la nube',false);return false;}
     finally{saving=false;if(dirty)setTimeout(()=>save('pending-change'),100);}
@@ -7615,12 +7632,14 @@ header .header-actions{
       let d=rows[0].data||{}; if(typeof d==='string')d=parse(d,{});
       const main=normalizeMain(d.main&&typeof d.main==='object'?d.main:d);
       const extra=d.extra&&typeof d.extra==='object'?d.extra:{};
-      const packed=hash({main,extra,updated_at:rows[0].updated_at});
+      const settings=d.settings&&typeof d.settings==='object'?d.settings:{};
+      const packed=hash({main,extra,settings,updated_at:rows[0].updated_at});
       window.__florelaCloudMain=main;window.__florelaCloudExtra=extra;window.__florelaCloudStateLoaded=true;window.__florelaCloudUpdatedAt=rows[0].updated_at;
       if(packed!==publicHash){
         publicHash=packed;
         localStorage.setItem(STATE,JSON.stringify(main));
         localStorage.setItem(EXTRA,JSON.stringify(extra));
+        localStorage.setItem(SETTINGS,JSON.stringify(settings));
         window.florelaAdminV2Data=main;
         dispatch();
       }
