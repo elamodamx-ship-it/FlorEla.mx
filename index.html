@@ -53,12 +53,7 @@
         try { localBefore = JSON.parse(localStorage.getItem('florelaAdminV2Data') || '{}') || {}; } catch(e) {}
         var cloudHasRealData = !!(d && ((Array.isArray(d.products) && d.products.length) || Object.keys(d).length > 3 || Object.keys(cloudExtra).length));
         var localHasRealData = !!(localBefore && ((Array.isArray(localBefore.products) && localBefore.products.length) || Object.keys(localBefore).length > 3));
-        /* V26 FIX: a public page can read an empty cloud while an administrator
-           still has the real catalog locally. Never let that empty public snapshot
-           erase the administrator's local catalog. The public legacy cache is still
-           refreshed from the cloud below, but the admin cache is preserved until the
-           administrator explicitly/automatically publishes it. */
-        if (cloudHasRealData || !localHasRealData) {
+        if (!isAdmin || cloudHasRealData || !localHasRealData) {
           localStorage.setItem('florelaAdminV2Data', JSON.stringify(d));
           localStorage.setItem('florelaEditableTextsV2', JSON.stringify(cloudExtra));
         }
@@ -2980,7 +2975,7 @@ document.querySelectorAll('.product-card').forEach(card=>{
  function close(){save();$("florelaAdminPanel").classList.remove("open");$("florelaAdminPanel").setAttribute("aria-hidden","true")}
  document.addEventListener("click",e=>{
   const tab=e.target.closest("[data-admin-tab]");if(tab){document.querySelectorAll(".fv2-section").forEach(x=>x.classList.remove("active"));document.querySelector(`[data-v2section="${tab.dataset.v2tab}"]`)?.classList.add("active");document.querySelectorAll("[data-v2tab]").forEach(x=>x.classList.remove("active"));tab.classList.add("active");if(tab.dataset.v2tab==="moments"){mountMomentsEditor();renderMomentsEditor()}return}
-  if(e.target.closest("#flAdminSave")){(async()=>{try{const ok=await window.__florelaCloudSaveNow?.("admin-save-explicit");if(!ok)console.warn("[FlorEla] cloud save did not confirm")}catch(e){console.error("[FlorEla] explicit admin cloud save",e)}})();return}
+  if(e.target.closest("#flAdminSave")){save();return}
   if(e.target.closest("#flAdminPreview")){save();document.getElementById("florelaAdminPanel")?.classList.remove("open");document.getElementById("florelaAdminPanel")?.setAttribute("aria-hidden","true");document.getElementById("flAdminV2")?.classList.remove("open");document.getElementById("flAdminV2")?.setAttribute("aria-hidden","true");window.scrollTo(0,0);if(typeof florelaPublish==="function")florelaPublish();if(typeof florelaApplyConstructor==="function"){florelaApplyConstructor();setTimeout(florelaApplyConstructor,100);}return}
   if(e.target.closest("#admAddBanner")){s.banners.push("");renderLists();return}
   if(e.target.closest("#admAddCategory")){s.categories.push("Nueva categoría");renderLists();return}
@@ -4047,24 +4042,7 @@ function escHtml(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<"
   document.querySelector('[data-v2tab="products"]').click();
   await window.__florelaRenderProductPhotos?.(p.pid||p.sku||("p"+i));
 }
- async function saveProduct(){
-  /* If the user taps Guardar inmediatamente after choosing photos, wait for the
-     active upload. Then merge the latest canonical local product before the form
-     fields are written, so a stale in-memory object can never erase images. */
-  try{await window.__florelaPhotoUploadPromise}catch(_){}
-  try{
-    const latest=JSON.parse(localStorage.getItem(K)||'null');
-    if(latest&&Array.isArray(latest.products)&&Array.isArray(s.products)){
-      const current=s.products[edit];
-      const id=String(current?.pid||current?.sku||'');
-      const fresh=latest.products.find(x=>String(x?.pid||x?.sku||'')===id);
-      if(fresh){
-        if(Array.isArray(fresh.images))current.images=fresh.images.slice(0,10);
-        if(Array.isArray(fresh.cloudPhotos))current.cloudPhotos=fresh.cloudPhotos.slice(0,10);
-        if(fresh.image)current.image=fresh.image;
-      }
-    }
-  }catch(_){}
+ function saveProduct(){
   const photoPid=window.__florelaGetCurrentPhotoPid?.();
   const arr=editMode==="collabIndependent"?(Array.isArray(s.collabIndependentProducts)?s.collabIndependentProducts:(s.collabIndependentProducts=[])):s.products;
   const idx=editMode==="collabIndependent"?(collabEdit<0?arr.length-1:collabEdit):(edit<0?s.products.length-1:edit);
@@ -4089,12 +4067,9 @@ function escHtml(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<"
     showInCollab:!!$("fv2PShowCollab")?.checked
   });
   edit=-1; collabEdit=-1; const wasIndependent=editMode==="collabIndependent"; editMode="catalog"; if(wasIndependent){renderCollabIndependent();} else {renderProducts();} save();
-  /* Explicit cloud commit: do not depend on the localStorage autosave hook. */
-  try{ await window.__florelaCloudSaveNow?.("product-save-explicit"); }catch(e){ console.error("[FlorEla] explicit product cloud save",e); }
   const editor=document.getElementById("fv2ProductEditor");
   if(editor){ editor.style.display="none"; const h=editor.querySelector("h2"); if(h) h.textContent="Editor de producto"; }
   window.dispatchEvent(new CustomEvent("florela-products-updated"));
-  setTimeout(()=>window.__florelaMigrateLocalProductPhotos?.(),120);
   window.__florelaRenderCollabSection?.();
   window.__florelaRenderCatalog?.();
 }
@@ -7549,7 +7524,7 @@ header .header-actions{
 <!-- FLORELA V15 AUTHORITATIVE SAVE: botón Guardar -> Edge Function -> Supabase -->
 <!-- FLORELA CANONICAL STATE GUARD V22 -->
 <!-- FLORELA CLOUD PRODUCT PHOTOS BRIDGE v1 -->
-<!-- FLORELA CLOUD CORE V34 — Supabase es la única fuente de verdad; localStorage solo es caché temporal -->
+<!-- FLORELA CLOUD CORE V32 — fuente única de verdad: Supabase -->
 <script id="florela-cloud-core-v32">
 (function(){
   'use strict';
@@ -7562,7 +7537,7 @@ header .header-actions{
   const KEYS=new Set([STATE,EXTRA,SETTINGS]);
   let saveTimer=0, saving=false, dirty=false, lastHash='', publicHash='';
 
-  const admin=()=>{try{return sessionStorage.getItem('florelaAdminUnlocked')==='1'||!!document.querySelector('#flAdminV2.open,#florelaAdminPanel.open')}catch(e){try{return !!document.querySelector('#flAdminV2.open,#florelaAdminPanel.open')}catch(_){return false}}};
+  const admin=()=>{try{return sessionStorage.getItem('florelaAdminUnlocked')==='1'}catch(e){return false}};
   const parse=(v,f={})=>{try{const x=JSON.parse(v);return x==null?f:x}catch(e){return f}};
   const read=(k,f={})=>parse(localStorage.getItem(k)||'null',f);
   const uniq=a=>[...new Set((a||[]).filter(x=>typeof x==='string'&&x.trim()).map(x=>x.trim()))];
@@ -7603,37 +7578,13 @@ header .header-actions{
     try{window.__florelaRenderCollabSection?.()}catch(e){}
     try{window.__florelaApplyEditableTexts?.()}catch(e){}
   }
-  async function save(reason='change',force=false){
-    if(!admin()&&!force)return false;
+  async function save(reason='change'){
+    if(!admin())return false;
     if(saving){dirty=true;return false;}
     saving=true;dirty=false;
     try{
       const data=snapshot(), h=hash(data);
       if(h===lastHash)return true;
-
-      // NEVER allow an empty/new admin browser to overwrite a populated cloud.
-      // This is the critical guard that prevents stale/empty localStorage from
-      // erasing the catalog for every other browser/device.
-      try{
-        const guardUrl=REST+'?id=eq.main&select=data,updated_at&_='+Date.now();
-        const gr=await fetch(guardUrl,{cache:'no-store',headers:{apikey:KEY,Authorization:'Bearer '+KEY,Accept:'application/json','Cache-Control':'no-cache'}});
-        const grows=await gr.json().catch(()=>[]);
-        if(gr.ok&&Array.isArray(grows)&&grows[0]){
-          let gd=grows[0].data||{}; if(typeof gd==='string')gd=parse(gd,{});
-          const gm=normalizeMain(gd.main&&typeof gd.main==='object'?gd.main:gd);
-          const cloudHasData=!!(gm&&((Array.isArray(gm.products)&&gm.products.length)||Object.keys(gm).length>3)||Object.keys(gd.extra||{}).length);
-          const localHasData=!!(data.main&&((Array.isArray(data.main.products)&&data.main.products.length)||Object.keys(data.main).length>3)||Object.keys(data.extra||{}).length);
-          if(cloudHasData&&!localHasData){
-            localStorage.setItem(STATE,JSON.stringify(gm));
-            localStorage.setItem(EXTRA,JSON.stringify(gd.extra&&typeof gd.extra==='object'?gd.extra:{}));
-            localStorage.setItem(SETTINGS,JSON.stringify(gd.settings&&typeof gd.settings==='object'?gd.settings:{}));
-            dispatch();
-            status('☁️ Datos recuperados de la nube',true);
-            return false;
-          }
-        }
-      }catch(guardErr){console.warn('[FlorEla V32] cloud overwrite guard',guardErr)}
-
       const r=await fetch(RPC,{method:'POST',cache:'no-store',headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json',Accept:'application/json','Prefer':'return=representation'},body:JSON.stringify({p_id:'main',p_data:data,p_token:TOKEN})});
       const t=await r.text(); let j=null; try{j=JSON.parse(t)}catch(e){}
       if(!r.ok||j?.ok===false)throw new Error(j?.error||j?.message||t||('HTTP '+r.status));
@@ -7641,8 +7592,8 @@ header .header-actions{
       const vr=await fetch(REST+'?id=eq.main&select=data,updated_at&_='+Date.now(),{cache:'no-store',headers:{apikey:KEY,Authorization:'Bearer '+KEY,Accept:'application/json','Cache-Control':'no-cache'}});
       const vrows=await vr.json().catch(()=>[]);
       if(!vr.ok||!Array.isArray(vrows)||!vrows[0]||hash(vrows[0].data)!==hash(data)) throw new Error('La nube no confirmó el estado guardado');
-      lastHash=h;status('☁️ ✓ Guardado correctamente en la nube',true);
-      const b=document.getElementById('flAdminSave'); if(b){const old=b.textContent;b.textContent='☁️ ✓ Guardado correctamente en la nube';setTimeout(()=>{if(b)b.textContent=old},3500)}
+      lastHash=h;status('✓ Guardado en la nube',true);
+      const b=document.getElementById('flAdminSave'); if(b){const old=b.textContent;b.textContent='☁️ ✓ Guardado en la nube';setTimeout(()=>{if(b)b.textContent=old},3500)}
       window.dispatchEvent(new CustomEvent('florela-cloud-saved',{detail:{reason,updated_at:vrows[0].updated_at}}));
       return true;
     }catch(e){console.error('[FlorEla V32] cloud save',e);status('⚠️ Error al guardar en la nube',false);return false;}
@@ -7668,100 +7619,8 @@ header .header-actions{
   document.addEventListener('change',e=>{if(admin()&&e.target?.closest?.('#flAdminV2'))queue('admin-change',180)},true);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden&&admin())queue('visible',100)});
   window.addEventListener('online',()=>{if(admin())queue('online',100)});
-
-  /* V26 FIX: recover product photos that were previously kept only in the
-     administrator's IndexedDB. This runs after admin unlock, uploads each local
-     photo to Supabase Storage, marks the local record with cloudUrl to avoid
-     duplicates, merges all URLs into the canonical product, and verifies the
-     complete state through the same cloud save path. */
-  async function migrateLocalProductPhotos(){
-    if(!admin())return;
-    try{
-      const db=await new Promise((resolve,reject)=>{
-        const r=indexedDB.open('FlorEla_Product_Photos_V81');
-        r.onsuccess=()=>resolve(r.result); r.onerror=()=>reject(r.error);
-      });
-      if(!db.objectStoreNames.contains('photos')){db.close();return;}
-      const items=await new Promise((resolve,reject)=>{
-        const r=db.transaction('photos','readonly').objectStore('photos').getAll();
-        r.onsuccess=()=>resolve(r.result||[]); r.onerror=()=>reject(r.error);
-      });
-      if(!items.length){db.close();return;}
-      const d=normalizeMain(read(STATE,{}));
-      const products=Array.isArray(d.products)?d.products:[];
-      let changed=false;
-      for(const item of items){
-        if(item?.cloudUrl)continue;
-        const pid=String(item?.pid||'');
-        if(!pid||!item?.blob)continue;
-        const p=products.find(x=>String(x?.pid||x?.sku||'')===pid);
-        if(!p)continue;
-        const existing=uniq([p.image,...(p.images||[]),...(p.cloudPhotos||[])]);
-        if(existing.length>=10)continue;
-        const form=new FormData();
-        const safeName=String(item.name||('foto-'+item.id+'.jpg')).replace(/[^a-zA-Z0-9._-]/g,'_');
-        form.append('file',item.blob,item.name||safeName);
-        form.append('path','products/'+pid+'/migrated-v26-'+String(item.id)+'-'+safeName);
-        const r=await fetch(UPLOAD,{method:'POST',headers:{'x-florela-admin':TOKEN},body:form,cache:'no-store'});
-        const j=await r.json().catch(()=>null);
-        if(!r.ok||!j?.ok||!j.public_url)continue;
-        const url=String(j.public_url);
-        const media=uniq([...existing,url]).slice(0,10);
-        p.image=media[0]||''; p.images=media; p.cloudPhotos=media; changed=true;
-        try{
-          await new Promise((resolve,reject)=>{
-            const tx=db.transaction('photos','readwrite');
-            const copy=Object.assign({},item,{cloudUrl:url});
-            const req=tx.objectStore('photos').put(copy);
-            req.onsuccess=()=>resolve(); req.onerror=()=>reject(req.error);
-          });
-        }catch(_){}
-      }
-      db.close();
-      if(changed){
-        localStorage.setItem(STATE,JSON.stringify(d));
-        dispatch();
-        await save('local-photo-migration');
-        status('✓ Fotos locales sincronizadas con la nube',true);
-      }
-    }catch(e){console.warn('[FlorEla V26] local photo migration',e)}
-  }
-
-  window.addEventListener('florela-admin-unlocked',()=>{
-    setTimeout(async()=>{
-      await migrateLocalProductPhotos();
-      await save('admin-unlocked');
-    },180);
-  });
+  window.addEventListener('florela-admin-unlocked',()=>setTimeout(()=>save('admin-unlocked'),120));
   window.__florelaCloudSaveV32=save;
-  // V34 CLOUD-FIRST: Supabase is authoritative. localStorage remains only a short-lived
-  // UI cache so the existing editor can operate without being rewritten. Every successful
-  // administrator save is verified against the cloud before showing success.
-  window.__florelaCloudIsSourceOfTruth=true;
-  window.__florelaCloudSaveNow=async function(reason='manual'){
-    /* Force a real cloud write + read-back verification. This prevents a previous
-       autosave hash from making an explicit Save look successful without writing. */
-    lastHash='';
-    const ok=await save(reason,true);
-    if(ok) status('☁️ ✓ Guardado correctamente en la nube',true);
-    return ok;
-  };
-  window.__florelaMigrateLocalProductPhotos=migrateLocalProductPhotos;
-
-  // V33 FIX: the current admin panel does not set the historical
-  // `florelaAdminUnlocked` session flag. Detect the real open panel instead
-  // and bootstrap the cloud automatically as soon as the administrator opens it.
-  try{
-    const adminPanels=['#flAdminV2','#florelaAdminPanel'];
-    const bootstrapIfOpen=()=>{
-      if(adminPanels.some(sel=>document.querySelector(sel+'.open'))){
-        setTimeout(()=>save('admin-panel-open-bootstrap'),120);
-      }
-    };
-    const mo=new MutationObserver(bootstrapIfOpen);
-    mo.observe(document.body,{subtree:true,attributes:true,attributeFilter:['class','aria-hidden']});
-    bootstrapIfOpen();
-  }catch(e){console.warn('[FlorEla V33] admin bootstrap observer',e)}
 
   async function publicPull(reason='public'){
     if(admin())return false;
@@ -7774,15 +7633,6 @@ header .header-actions{
       const main=normalizeMain(d.main&&typeof d.main==='object'?d.main:d);
       const extra=d.extra&&typeof d.extra==='object'?d.extra:{};
       const settings=d.settings&&typeof d.settings==='object'?d.settings:{};
-      // An empty cloud record must not erase a populated local cache. This is
-      // especially important while the first admin browser bootstraps Supabase.
-      const cloudHasData=!!(main&&((Array.isArray(main.products)&&main.products.length)||Object.keys(main).length>3)||Object.keys(extra).length);
-      const localBefore=read(STATE,{});
-      const localHasData=!!(localBefore&&((Array.isArray(localBefore.products)&&localBefore.products.length)||Object.keys(localBefore).length>3));
-      if(!cloudHasData&&localHasData){
-        window.__florelaCloudMain=main;window.__florelaCloudExtra=extra;window.__florelaCloudStateLoaded=false;
-        return false;
-      }
       const packed=hash({main,extra,settings,updated_at:rows[0].updated_at});
       window.__florelaCloudMain=main;window.__florelaCloudExtra=extra;window.__florelaCloudStateLoaded=true;window.__florelaCloudUpdatedAt=rows[0].updated_at;
       if(packed!==publicHash){
@@ -7818,16 +7668,13 @@ header .header-actions{
       const d=normalizeMain(read(STATE,{}));
       const products=Array.isArray(d.products)?d.products:[];
       const p=products.find(x=>String(x?.pid||x?.sku||'')===String(pid));
-      /* A brand-new product is not in localStorage until Guardar producto.
-         V81 still keeps its selected files locally; the migration/save step below
-         will upload them once the product exists. */
-      if(!p)return;
+      if(!p)throw new Error('Producto no encontrado: '+pid);
       const existing=uniq([p.image,...(p.images||[]),...(p.cloudPhotos||[])]);
       const urls=[];
       for(let i=0;i<files.length&&existing.length+urls.length<10;i++){
         const f=files[i], form=new FormData();
         form.append('file',f,f.name||('foto-'+i+'.jpg'));
-        form.append('path','products/'+String(pid)+'/v26-'+Date.now()+'-'+i+'-'+String(f.name||'foto.jpg').replace(/[^a-zA-Z0-9._-]/g,'_'));
+        form.append('path','products/'+String(pid)+'/v32-'+Date.now()+'-'+i+'-'+String(f.name||'foto.jpg').replace(/[^a-zA-Z0-9._-]/g,'_'));
         const r=await fetch(UPLOAD,{method:'POST',headers:{'x-florela-admin':TOKEN},body:form,cache:'no-store'});
         const j=await r.json().catch(()=>null);
         if(!r.ok||!j?.ok||!j.public_url)throw new Error(j?.error||('HTTP '+r.status));
@@ -7839,16 +7686,10 @@ header .header-actions{
       dispatch();
       await save('photo-upload');
       status('✓ Fotos guardadas en la nube',true);
-    }catch(e){console.error('[FlorEla V26] photo upload',e);status('⚠️ No se pudieron subir las fotos',false)}
+    }catch(e){console.error('[FlorEla V32] photo upload',e);status('⚠️ No se pudieron subir las fotos',false)}
     finally{photoBusy=false;input.value='';}
   }
-  document.addEventListener('change',e=>{
-    if(e.target?.id==='fv2PPhotos'){
-      const promise=uploadPhotos(e.target);
-      window.__florelaPhotoUploadPromise=promise;
-      Promise.resolve(promise).finally(()=>{if(window.__florelaPhotoUploadPromise===promise)window.__florelaPhotoUploadPromise=null});
-    }
-  },true);
+  document.addEventListener('change',e=>{if(e.target?.id==='fv2PPhotos')uploadPhotos(e.target)},true);
 })();
 </script>
 
