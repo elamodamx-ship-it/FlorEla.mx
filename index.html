@@ -15,9 +15,9 @@
        bootstrap depended on /api/florela-state, but production was deployed as
        a static upload and that route did not exist, causing an avoidable 404. */
     var xhr = new XMLHttpRequest();
-    xhr.open('GET','https://jacswijucxvvoyhjdkkb.supabase.co/rest/v1/florela_app_state?id=eq.main&select=data,updated_at&_='+Date.now(),false);
-    xhr.setRequestHeader('apikey','sb_publishable_wTIQv46TIPUGOuVj_dIDaw_AhMOdKee');
-    xhr.setRequestHeader('Authorization','Bearer sb_publishable_wTIQv46TIPUGOuVj_dIDaw_AhMOdKee');
+    xhr.open('GET','https://ouxqgwqolajtvcusckag.supabase.co/rest/v1/florela_app_state?id=eq.main&select=data,updated_at&_='+Date.now(),false);
+    xhr.setRequestHeader('apikey','sb_publishable_0U45y3Ko7crrv8r_mq1wgA_H3-FaF6e');
+    xhr.setRequestHeader('Authorization','Bearer sb_publishable_0U45y3Ko7crrv8r_mq1wgA_H3-FaF6e');
     xhr.setRequestHeader('Accept','application/json');
     xhr.setRequestHeader('Cache-Control','no-cache');
     xhr.send(null);
@@ -2980,7 +2980,7 @@ document.querySelectorAll('.product-card').forEach(card=>{
  function close(){save();$("florelaAdminPanel").classList.remove("open");$("florelaAdminPanel").setAttribute("aria-hidden","true")}
  document.addEventListener("click",e=>{
   const tab=e.target.closest("[data-admin-tab]");if(tab){document.querySelectorAll(".fv2-section").forEach(x=>x.classList.remove("active"));document.querySelector(`[data-v2section="${tab.dataset.v2tab}"]`)?.classList.add("active");document.querySelectorAll("[data-v2tab]").forEach(x=>x.classList.remove("active"));tab.classList.add("active");if(tab.dataset.v2tab==="moments"){mountMomentsEditor();renderMomentsEditor()}return}
-  if(e.target.closest("#flAdminSave")){save();return}
+  if(e.target.closest("#flAdminSave")){(async()=>{try{const ok=await window.__florelaCloudSaveNow?.("admin-save-explicit");if(!ok)console.warn("[FlorEla] cloud save did not confirm")}catch(e){console.error("[FlorEla] explicit admin cloud save",e)}})();return}
   if(e.target.closest("#flAdminPreview")){save();document.getElementById("florelaAdminPanel")?.classList.remove("open");document.getElementById("florelaAdminPanel")?.setAttribute("aria-hidden","true");document.getElementById("flAdminV2")?.classList.remove("open");document.getElementById("flAdminV2")?.setAttribute("aria-hidden","true");window.scrollTo(0,0);if(typeof florelaPublish==="function")florelaPublish();if(typeof florelaApplyConstructor==="function"){florelaApplyConstructor();setTimeout(florelaApplyConstructor,100);}return}
   if(e.target.closest("#admAddBanner")){s.banners.push("");renderLists();return}
   if(e.target.closest("#admAddCategory")){s.categories.push("Nueva categoría");renderLists();return}
@@ -4089,6 +4089,8 @@ function escHtml(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<"
     showInCollab:!!$("fv2PShowCollab")?.checked
   });
   edit=-1; collabEdit=-1; const wasIndependent=editMode==="collabIndependent"; editMode="catalog"; if(wasIndependent){renderCollabIndependent();} else {renderProducts();} save();
+  /* Explicit cloud commit: do not depend on the localStorage autosave hook. */
+  try{ await window.__florelaCloudSaveNow?.("product-save-explicit"); }catch(e){ console.error("[FlorEla] explicit product cloud save",e); }
   const editor=document.getElementById("fv2ProductEditor");
   if(editor){ editor.style.display="none"; const h=editor.querySelector("h2"); if(h) h.textContent="Editor de producto"; }
   window.dispatchEvent(new CustomEvent("florela-products-updated"));
@@ -7552,10 +7554,10 @@ header .header-actions{
 (function(){
   'use strict';
   const STATE='florelaAdminV2Data', EXTRA='florelaEditableTextsV2', SETTINGS='florelaAdminSettingsV1';
-  const REST='https://jacswijucxvvoyhjdkkb.supabase.co/rest/v1/florela_app_state';
-  const RPC='https://jacswijucxvvoyhjdkkb.supabase.co/rest/v1/rpc/florela_save_state';
-  const UPLOAD='https://jacswijucxvvoyhjdkkb.supabase.co/functions/v1/florela-sync';
-  const KEY='sb_publishable_wTIQv46TIPUGOuVj_dIDaw_AhMOdKee';
+  const REST='https://ouxqgwqolajtvcusckag.supabase.co/rest/v1/florela_app_state';
+  const RPC='https://ouxqgwqolajtvcusckag.supabase.co/rest/v1/rpc/florela_save_state';
+  const UPLOAD='https://ouxqgwqolajtvcusckag.supabase.co/functions/v1/florela-sync';
+  const KEY='sb_publishable_0U45y3Ko7crrv8r_mq1wgA_H3-FaF6e';
   const TOKEN='florela-web-sync-v1';
   const KEYS=new Set([STATE,EXTRA,SETTINGS]);
   let saveTimer=0, saving=false, dirty=false, lastHash='', publicHash='';
@@ -7601,8 +7603,8 @@ header .header-actions{
     try{window.__florelaRenderCollabSection?.()}catch(e){}
     try{window.__florelaApplyEditableTexts?.()}catch(e){}
   }
-  async function save(reason='change'){
-    if(!admin())return false;
+  async function save(reason='change',force=false){
+    if(!admin()&&!force)return false;
     if(saving){dirty=true;return false;}
     saving=true;dirty=false;
     try{
@@ -7737,7 +7739,10 @@ header .header-actions{
   // administrator save is verified against the cloud before showing success.
   window.__florelaCloudIsSourceOfTruth=true;
   window.__florelaCloudSaveNow=async function(reason='manual'){
-    const ok=await save(reason);
+    /* Force a real cloud write + read-back verification. This prevents a previous
+       autosave hash from making an explicit Save look successful without writing. */
+    lastHash='';
+    const ok=await save(reason,true);
     if(ok) status('☁️ ✓ Guardado correctamente en la nube',true);
     return ok;
   };
