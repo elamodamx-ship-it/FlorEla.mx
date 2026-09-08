@@ -7537,7 +7537,7 @@ header .header-actions{
   const KEYS=new Set([STATE,EXTRA,SETTINGS]);
   let saveTimer=0, saving=false, dirty=false, lastHash='', publicHash='';
 
-  const admin=()=>{try{return sessionStorage.getItem('florelaAdminUnlocked')==='1'}catch(e){return false}};
+  const admin=()=>{try{return sessionStorage.getItem('florelaAdminUnlocked')==='1'||!!document.getElementById('flAdminV2')?.classList.contains('open')||!!document.getElementById('florelaAdminPanel')?.classList.contains('open')}catch(e){return !!document.getElementById('flAdminV2')?.classList.contains('open')||!!document.getElementById('florelaAdminPanel')?.classList.contains('open')}};
   const parse=(v,f={})=>{try{const x=JSON.parse(v);return x==null?f:x}catch(e){return f}};
   const read=(k,f={})=>parse(localStorage.getItem(k)||'null',f);
   const uniq=a=>[...new Set((a||[]).filter(x=>typeof x==='string'&&x.trim()).map(x=>x.trim()))];
