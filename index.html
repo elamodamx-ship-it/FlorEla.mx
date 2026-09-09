@@ -2060,6 +2060,73 @@ header .header-actions{margin-left:auto!important}
   .florela-flash-body h2{font-size:24px}
 }
 </style>
+
+<style id="florela-v90-visual-polish">
+/* FlorEla V90 — capa visual recuperada y pulida, sin tocar la lógica del administrador. */
+:root{--fl90-cream:#fbf3ea;--fl90-paper:#fffaf6;--fl90-wine:#8f303b;--fl90-ink:#3d292d;--fl90-muted:#776b66;--fl90-line:#eadfd8}
+html{background:var(--fl90-cream)!important}
+body{background:var(--fl90-cream)!important;color:var(--fl90-ink)!important}
+header{background:rgba(251,243,234,.96)!important;border-bottom:1px solid rgba(143,48,59,.12)!important}
+header .nav{max-width:1180px!important;margin:auto!important;padding-left:18px!important;padding-right:18px!important}
+header .florela-main-logo{width:220px!important;max-height:86px!important;object-fit:contain!important;object-position:left center!important}
+.header-action{background:rgba(255,250,246,.84)!important;border-color:rgba(143,48,59,.16)!important}
+.header-action:hover{background:#fff!important}
+
+/* Capa fotográfica: ancho completo y limpia, como la versión que veníamos afinando. */
+.photo-banner{width:100%!important;background:var(--fl90-cream)!important;border:0!important}
+.photo-slider{width:100%!important;max-width:none!important}
+.photo-slide img,.photo-slide video{width:100%!important;height:100%!important;object-fit:cover!important}
+
+/* Presentación: mantiene el diseño editorial, sin cajas gigantes ni espacios muertos. */
+.florela-presentation{background:var(--fl90-cream)!important}
+.florela-presentation img{width:100%!important;height:auto!important}
+.florela-presentation .hero-rotating-copy{max-width:520px!important}
+.florela-presentation .hero-rotating-phrase{font-family:Georgia,'Times New Roman',serif!important;color:var(--fl90-wine)!important}
+
+/* Momentos */
+.discover{background:#fffaf4!important}
+.moment{background:#fbf3ea!important;border-color:#eadfd8!important}
+.moment.active,.moment:hover{background:#8f303b!important;border-color:#8f303b!important}
+
+/* Catálogo */
+.catalog{background:#fffaf4!important}
+#florelaPublicCatalogGrid{gap:20px!important}
+#florelaPublicCatalogGrid .sample-product{border-color:#eadfd8!important;box-shadow:0 8px 25px rgba(65,38,28,.07)!important}
+#florelaPublicCatalogGrid .sample-product:hover{box-shadow:0 16px 34px rgba(65,38,28,.12)!important}
+#florelaPublicCatalogGrid .sample-photo{background:#f8eee8!important}
+
+/* Secciones editoriales */
+.statement{background:#f2e1d6!important}
+.statement .eyebrow,.statement h2,.statement h2 i,.statement p{color:#8f303b!important}
+.gift-section,.contact{background:#fffaf4!important}
+.closing{background:#f2e1d6!important}
+
+/* Footer */
+footer{background:var(--fl90-cream)!important}
+
+/* Teléfono: nada debe provocar scroll horizontal. */
+@media(max-width:760px){
+  html,body{width:100%;max-width:100%;overflow-x:hidden!important}
+  header .nav{min-height:66px!important;padding:6px 12px!important}
+  header .florela-main-logo{width:145px!important;max-height:62px!important}
+  .header-action{width:36px!important;height:36px!important;padding:0!important;border-radius:50%!important;justify-content:center!important}
+  .header-action span:not(.action-icon){display:none!important}
+  .photo-slider{aspect-ratio:16/8.8!important;min-height:205px!important}
+  .florela-presentation .hero-rotating-copy{left:4%!important;width:43%!important;max-width:43%!important}
+  .florela-presentation .hero-rotating-phrase{font-size:15px!important;padding:8px 10px!important}
+  #florelaPublicCatalogGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important}
+}
+@media(max-width:420px){
+  header .florela-main-logo{width:135px!important}
+  #florelaPublicCatalogGrid{gap:9px!important}
+  #florelaPublicCatalogGrid .sample-info{padding:10px!important}
+}
+
+/* Respeta accesibilidad de usuarios que prefieren menos movimiento. */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+}
+</style>
 </head>
 <body>
 <div aria-hidden="true" aria-label="Aviso de FlorEla" aria-modal="true" id="florelaFlashOverlay" role="dialog">
