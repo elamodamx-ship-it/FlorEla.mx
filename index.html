@@ -7658,11 +7658,48 @@ header .header-actions{
     try{window.__florelaRenderCollabSection?.()}catch(e){}
     try{window.__florelaApplyEditableTexts?.()}catch(e){}
   }
+  // Sincroniza el formulario abierto del editor con localStorage justo antes de
+  // construir el snapshot. Esto evita que un valor visible en pantalla quede
+  // fuera del estado que se manda a Supabase por una carrera entre eventos.
+  function syncOpenProductEditor(){
+    try{
+      if(!admin())return;
+      const ed=document.getElementById('fv2ProductEditor');
+      if(!ed || ed.style.display==='none')return;
+      const sku=(document.getElementById('fv2PSku')?.value||'').trim();
+      const name=(document.getElementById('fv2PName')?.value||'').trim();
+      const d=normalizeMain(read(STATE,{}));
+      if(!Array.isArray(d.products))return;
+      const p=d.products.find(x=>sku && String(x?.sku||'').trim()===sku) ||
+              d.products.find(x=>name && String(x?.name||'').trim()===name);
+      if(!p)return;
+      const val=id=>document.getElementById(id)?.value ?? '';
+      const checked=id=>!!document.getElementById(id)?.checked;
+      p.name=val('fv2PName');
+      p.price=+val('fv2PPrice')||0;
+      p.discount=Math.max(0,Math.min(100,+val('fv2PDiscount')||0));
+      p.oldPrice=val('fv2POldPrice');
+      p.stock=+val('fv2PStock')||0;
+      p.category=val('fv2PCat');
+      p.sku=val('fv2PSku').trim()||p.sku||'';
+      p.description=val('fv2PDesc');
+      p.image=val('fv2PImage');
+      p.tags=val('fv2PTags');
+      p.status=val('fv2PStatus');
+      p.color=val('fv2PColor');
+      p.prepTime=val('fv2PPrepTime');
+      p.showInCatalog=checked('fv2PShowCatalog')&&!checked('fv2PShowFavorites');
+      p.showInFavorites=checked('fv2PShowFavorites');
+      p.showInCollab=checked('fv2PShowCollab');
+      localStorage.setItem(STATE,JSON.stringify(d));
+    }catch(e){console.warn('[FlorEla V32] editor sync',e)}
+  }
   async function save(reason='change'){
     if(!admin())return false;
     if(saving){dirty=true;return false;}
     saving=true;dirty=false;
     try{
+      syncOpenProductEditor();
       const data=snapshot(), h=hash(data);
       if(h===lastHash)return true;
       const r=await fetch(RPC,{method:'POST',cache:'no-store',headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json',Accept:'application/json','Prefer':'return=representation'},body:JSON.stringify({p_id:'main',p_data:data,p_token:TOKEN})});
