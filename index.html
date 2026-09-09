@@ -2060,73 +2060,86 @@ header .header-actions{margin-left:auto!important}
   .florela-flash-body h2{font-size:24px}
 }
 </style>
-
-<style id="florela-v90-visual-polish">
-/* FlorEla V90 — capa visual recuperada y pulida, sin tocar la lógica del administrador. */
-:root{--fl90-cream:#fbf3ea;--fl90-paper:#fffaf6;--fl90-wine:#8f303b;--fl90-ink:#3d292d;--fl90-muted:#776b66;--fl90-line:#eadfd8}
-html{background:var(--fl90-cream)!important}
-body{background:var(--fl90-cream)!important;color:var(--fl90-ink)!important}
-header{background:rgba(251,243,234,.96)!important;border-bottom:1px solid rgba(143,48,59,.12)!important}
-header .nav{max-width:1180px!important;margin:auto!important;padding-left:18px!important;padding-right:18px!important}
-header .florela-main-logo{width:220px!important;max-height:86px!important;object-fit:contain!important;object-position:left center!important}
-.header-action{background:rgba(255,250,246,.84)!important;border-color:rgba(143,48,59,.16)!important}
-.header-action:hover{background:#fff!important}
-
-/* Capa fotográfica: ancho completo y limpia, como la versión que veníamos afinando. */
-.photo-banner{width:100%!important;background:var(--fl90-cream)!important;border:0!important}
-.photo-slider{width:100%!important;max-width:none!important}
-.photo-slide img,.photo-slide video{width:100%!important;height:100%!important;object-fit:cover!important}
-
-/* Presentación: mantiene el diseño editorial, sin cajas gigantes ni espacios muertos. */
-.florela-presentation{background:var(--fl90-cream)!important}
-.florela-presentation img{width:100%!important;height:auto!important}
-.florela-presentation .hero-rotating-copy{max-width:520px!important}
-.florela-presentation .hero-rotating-phrase{font-family:Georgia,'Times New Roman',serif!important;color:var(--fl90-wine)!important}
-
-/* Momentos */
-.discover{background:#fffaf4!important}
-.moment{background:#fbf3ea!important;border-color:#eadfd8!important}
-.moment.active,.moment:hover{background:#8f303b!important;border-color:#8f303b!important}
-
-/* Catálogo */
-.catalog{background:#fffaf4!important}
-#florelaPublicCatalogGrid{gap:20px!important}
-#florelaPublicCatalogGrid .sample-product{border-color:#eadfd8!important;box-shadow:0 8px 25px rgba(65,38,28,.07)!important}
-#florelaPublicCatalogGrid .sample-product:hover{box-shadow:0 16px 34px rgba(65,38,28,.12)!important}
-#florelaPublicCatalogGrid .sample-photo{background:#f8eee8!important}
-
-/* Secciones editoriales */
-.statement{background:#f2e1d6!important}
-.statement .eyebrow,.statement h2,.statement h2 i,.statement p{color:#8f303b!important}
-.gift-section,.contact{background:#fffaf4!important}
-.closing{background:#f2e1d6!important}
-
-/* Footer */
-footer{background:var(--fl90-cream)!important}
-
-/* Teléfono: nada debe provocar scroll horizontal. */
-@media(max-width:760px){
-  html,body{width:100%;max-width:100%;overflow-x:hidden!important}
-  header .nav{min-height:66px!important;padding:6px 12px!important}
-  header .florela-main-logo{width:145px!important;max-height:62px!important}
-  .header-action{width:36px!important;height:36px!important;padding:0!important;border-radius:50%!important;justify-content:center!important}
-  .header-action span:not(.action-icon){display:none!important}
-  .photo-slider{aspect-ratio:16/8.8!important;min-height:205px!important}
-  .florela-presentation .hero-rotating-copy{left:4%!important;width:43%!important;max-width:43%!important}
-  .florela-presentation .hero-rotating-phrase{font-size:15px!important;padding:8px 10px!important}
-  #florelaPublicCatalogGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important}
+<style id="florela-restored-visual-v1">
+/* FLORela — restauración visual: conserva toda la lógica y recupera la composición boutique/móvil */
+:root{
+  --wine:#8f303b;
+  --wine-dark:#74232d;
+  --cream:#fbf3e9;
+  --paper:#fffaf4;
+  --ink:#2d2927;
+  --muted:#776f69;
+  --line:#eadfd5;
+}
+body{background:var(--cream)!important;color:var(--ink)!important;}
+header{
+  background:rgba(255,250,244,.96)!important;
+  border-bottom:1px solid rgba(143,48,59,.12)!important;
+}
+header .container{width:min(1120px,92%)!important;margin:auto!important;}
+.brand .florela-main-logo{width:210px!important;max-height:82px!important;}
+/* Acceso discreto: un solo engrane, sin botón textual al pie */
+#flAdminFooterAccess{display:none!important;}
+#florela-restored-admin-gear{
+  position:fixed!important;right:12px!important;bottom:12px!important;z-index:100200!important;
+  width:34px!important;height:34px!important;padding:0!important;border-radius:50%!important;
+  border:1px solid rgba(143,48,59,.16)!important;background:rgba(251,243,233,.72)!important;
+  color:rgba(143,48,59,.46)!important;font:16px/34px Arial,sans-serif!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  box-shadow:0 5px 18px rgba(60,30,25,.08)!important;backdrop-filter:blur(6px)!important;
+  cursor:pointer!important;opacity:.5!important;transition:opacity .2s,transform .2s,background .2s!important;
+}
+#florela-restored-admin-gear:hover,#florela-restored-admin-gear:focus{opacity:1!important;transform:rotate(18deg)!important;background:#fffaf4!important;outline:none!important;}
+/* Presentación: imagen protagonista, frase elegante y sin bloques pesados */
+.florela-presentation{position:relative!important;width:100%!important;overflow:hidden!important;background:#fbf3ea!important;line-height:0!important;}
+.florela-presentation>img{display:block!important;width:100%!important;height:auto!important;max-width:none!important;object-fit:cover!important;}
+.florela-presentation .hero-rotating-copy{left:5%!important;top:50%!important;width:min(47%,560px)!important;min-height:80px!important;}
+.florela-presentation .hero-rotating-phrase{
+  font-size:clamp(24px,3.05vw,43px)!important;line-height:1.08!important;
+  padding:13px 18px!important;border-radius:15px!important;
+  background:rgba(255,250,245,.76)!important;border:1px solid rgba(255,255,255,.9)!important;
+  box-shadow:0 8px 28px rgba(70,35,25,.12)!important;color:#8f2f3b!important;
+}
+/* Galería fotográfica: limpia, protagonista y con controles discretos */
+.photo-banner{background:#ead8cc!important;border-bottom:1px solid var(--line)!important;}
+.photo-slider{width:100%!important;}
+.photo-slide img,.photo-slide video{object-fit:cover!important;}
+/* Secciones: ritmo más parecido a la versión boutique */
+.catalog,.discover,.gift-section,.sample-products,.info-policies{background:#fffaf4!important;}
+.section-head h2,.catalog-top h2,.sample-head h2{font-family:Georgia,"Times New Roman",serif!important;font-weight:400!important;}
+.product-card,.sample-product{box-shadow:0 8px 28px rgba(70,35,25,.055)!important;}
+/* Evita desplazamiento horizontal accidental */
+html,body{max-width:100%;overflow-x:hidden!important;}
+@media(max-width:700px){
+  header{padding:0!important;}
+  header .container{width:calc(100% - 24px)!important;}
+  .nav{min-height:78px!important;gap:8px!important;}
+  .brand{max-width:72%!important;}
+  .brand .florela-main-logo{width:165px!important;max-height:70px!important;}
+  .florela-presentation>img{width:100%!important;height:auto!important;object-fit:contain!important;}
+  .florela-presentation .hero-rotating-copy{
+    left:5%!important;top:50%!important;width:57%!important;min-height:60px!important;
+  }
+  .florela-presentation .hero-rotating-phrase{
+    font-size:17px!important;line-height:1.14!important;padding:8px 11px!important;
+    border-radius:10px!important;background:rgba(255,250,245,.82)!important;
+  }
+  .photo-slider{aspect-ratio:16/9!important;min-height:0!important;}
+  .photo-arrow{width:34px!important;height:34px!important;}
+  .photo-dots{bottom:10px!important;}
+  .moment-grid{gap:10px!important;}
+  .moment{padding:17px!important;border-radius:18px!important;}
+  .moment strong{font-size:17px!important;}
+  .statement{padding:82px 0!important;}
+  #florela-restored-admin-gear{right:9px!important;bottom:9px!important;width:31px!important;height:31px!important;font-size:14px!important;line-height:31px!important;}
 }
 @media(max-width:420px){
-  header .florela-main-logo{width:135px!important}
-  #florelaPublicCatalogGrid{gap:9px!important}
-  #florelaPublicCatalogGrid .sample-info{padding:10px!important}
-}
-
-/* Respeta accesibilidad de usuarios que prefieren menos movimiento. */
-@media(prefers-reduced-motion:reduce){
-  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+  .brand .florela-main-logo{width:150px!important;}
+  .florela-presentation .hero-rotating-copy{width:60%!important;}
+  .florela-presentation .hero-rotating-phrase{font-size:15px!important;padding:7px 9px!important;}
 }
 </style>
+
 </head>
 <body>
 <div aria-hidden="true" aria-label="Aviso de FlorEla" aria-modal="true" id="florelaFlashOverlay" role="dialog">
@@ -7760,5 +7773,19 @@ header .header-actions{
 })();
 </script>
 
+
+<button id="florela-restored-admin-gear" type="button" aria-label="Administración FlorEla" title="Administración">⚙</button>
+<script id="florela-restored-admin-gear-js">
+(function(){
+  const b=document.getElementById('florela-restored-admin-gear');
+  if(!b)return;
+  b.addEventListener('click',function(){
+    try{
+      if(typeof window.florElaOpenAdmin==='function'){ window.florElaOpenAdmin(); }
+      else if(typeof window.florElaOpenAdminV2==='function'){ window.florElaOpenAdminV2(); }
+    }catch(e){}
+  });
+})();
+</script>
 </body>
 </html>
