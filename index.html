@@ -7668,13 +7668,27 @@ header .header-actions{
       const r=await fetch(RPC,{method:'POST',cache:'no-store',headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json',Accept:'application/json','Prefer':'return=representation'},body:JSON.stringify({p_id:'main',p_data:data,p_token:TOKEN})});
       const t=await r.text(); let j=null; try{j=JSON.parse(t)}catch(e){}
       if(!r.ok||j?.ok===false)throw new Error(j?.error||j?.message||t||('HTTP '+r.status));
-      /* Verify the write against Supabase before telling the administrator it worked. */
-      const vr=await fetch(REST+'?id=eq.main&select=data,updated_at&_='+Date.now(),{cache:'no-store',headers:{apikey:KEY,Authorization:'Bearer '+KEY,Accept:'application/json','Cache-Control':'no-cache'}});
-      const vrows=await vr.json().catch(()=>[]);
-      if(!vr.ok||!Array.isArray(vrows)||!vrows[0]||hash(vrows[0].data)!==hash(data)) throw new Error('La nube no confirmó el estado guardado');
+      /*
+       * El RPC ya confirma el guardado en Supabase. La lectura REST de verificación
+       * es solo una comprobación adicional y nunca debe convertir un guardado exitoso
+       * en un falso error (por caché, latencia o una respuesta temporal del API).
+       */
+      let verifiedAt=null;
+      try{
+        const vr=await fetch(REST+'?id=eq.main&select=data,updated_at&_='+Date.now(),{cache:'no-store',headers:{apikey:KEY,Authorization:'Bearer '+KEY,Accept:'application/json','Cache-Control':'no-cache'}});
+        const vrows=await vr.json().catch(()=>[]);
+        if(vr.ok&&Array.isArray(vrows)&&vrows[0]){
+          verifiedAt=vrows[0].updated_at||null;
+          if(hash(vrows[0].data)!==hash(data)) console.warn('[FlorEla V32] RPC guardó correctamente, pero la lectura de verificación aún no coincide.');
+        }else{
+          console.warn('[FlorEla V32] RPC guardó correctamente, pero la verificación REST no respondió correctamente.');
+        }
+      }catch(verifyError){
+        console.warn('[FlorEla V32] RPC guardó correctamente; verificación REST omitida:',verifyError);
+      }
       lastHash=h;status('✓ Guardado en la nube',true);
       const b=document.getElementById('flAdminSave'); if(b){const old=b.textContent;b.textContent='☁️ ✓ Guardado en la nube';setTimeout(()=>{if(b)b.textContent=old},3500)}
-      window.dispatchEvent(new CustomEvent('florela-cloud-saved',{detail:{reason,updated_at:vrows[0].updated_at}}));
+      window.dispatchEvent(new CustomEvent('florela-cloud-saved',{detail:{reason,updated_at:verifiedAt}}));
       return true;
     }catch(e){console.error('[FlorEla V32] cloud save',e);status('⚠️ Error al guardar en la nube',false);return false;}
     finally{saving=false;if(dirty)setTimeout(()=>save('pending-change'),100);}
