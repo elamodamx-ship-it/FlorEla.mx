@@ -7632,6 +7632,12 @@ header .header-actions{
   function normalizeMain(d){
     let m=(d&&typeof d==='object')?d:{};
     if(m.main&&typeof m.main==='object'&&!Array.isArray(m.main)){m=Object.assign({},m.main,m);delete m.main;}
+    // Algunos estados antiguos quedaron con products serializado como texto JSON.
+    // Lo convertimos aquí para que ADMIN y TIENDA trabajen exactamente con el mismo arreglo.
+    if(typeof m.products==='string'){
+      const parsed=parse(m.products,null);
+      if(Array.isArray(parsed))m.products=parsed;
+    }
     if(Array.isArray(m.products))m.products=m.products.map(normalizeProduct);
     return m;
   }
