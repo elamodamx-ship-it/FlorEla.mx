@@ -7018,5 +7018,60 @@ header .header-actions{
   },true);
 })();
 </script>
+<script id="florela-public-supabase-authority-v2">
+(function(){
+  'use strict';
+  const REST='https://ouxqgwqolajtvcusckag.supabase.co/rest/v1/florela_app_state';
+  const KEY='sb_publishable_0U45y3Ko7crrv8r_mq1wgA_H3-FaF6e';
+  let lastVersion='';
+  let busy=false;
+  function isAdmin(){try{return sessionStorage.getItem('florelaAdminUnlocked')==='1'}catch(e){return false}}
+  function normalize(d){
+    d=(d&&typeof d==='object')?d:{};
+    if(d.main&&typeof d.main==='object'&&!Array.isArray(d.main)) d=d.main;
+    if(typeof d.products==='string'){try{d=Object.assign({},d,{products:JSON.parse(d.products)})}catch(e){}}
+    if(!Array.isArray(d.products)) d.products=[];
+    return d;
+  }
+  async function pull(reason){
+    if(isAdmin()||busy)return false;
+    busy=true;
+    try{
+      const r=await fetch(REST+'?id=eq.main&select=data,updated_at&_florela='+Date.now(),{
+        method:'GET',cache:'no-store',headers:{apikey:KEY,Authorization:'Bearer '+KEY,Accept:'application/json','Cache-Control':'no-cache'}
+      });
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const rows=await r.json();
+      if(!Array.isArray(rows)||!rows[0]) throw new Error('Sin estado main');
+      const main=normalize(rows[0].data);
+      const version=String(rows[0].updated_at||'')+'|'+JSON.stringify(main);
+      window.__florelaCloudMain=main;
+      window.__florelaCloudUpdatedAt=rows[0].updated_at||null;
+      window.__florelaCloudStateLoaded=true;
+      window.florelaAdminV2Data=main;
+      if(version!==lastVersion){
+        lastVersion=version;
+        try{
+          window.__florelaCloudInternalWrite=true;
+          localStorage.setItem('florelaAdminV2Data',JSON.stringify(main));
+        }finally{window.__florelaCloudInternalWrite=false}
+        window.dispatchEvent(new CustomEvent('florela-cloud-loaded',{detail:{reason,updated_at:rows[0].updated_at,publicAuthority:true}}));
+        window.dispatchEvent(new Event('florela-products-updated'));
+      }
+      if(typeof window.__florelaRenderCatalog==='function') await window.__florelaRenderCatalog();
+      if(typeof window.__florelaRenderFavorites==='function') await window.__florelaRenderFavorites();
+      if(typeof window.__florelaRenderCollabSection==='function') await window.__florelaRenderCollabSection();
+      return true;
+    }catch(e){console.warn('[FlorEla Public Authority V2]',reason,e);return false}
+    finally{busy=false}
+  }
+  window.__florelaPublicSupabaseAuthorityV2=pull;
+  function boot(){setTimeout(()=>pull('boot'),50);setTimeout(()=>pull('boot-2'),1000);setTimeout(()=>pull('boot-3'),3500)}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+  window.addEventListener('pageshow',()=>setTimeout(()=>pull('pageshow'),150));
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(()=>pull('visible'),150)});
+  setInterval(()=>pull('interval'),15000);
+})();
+</script>
 </body>
 </html>
