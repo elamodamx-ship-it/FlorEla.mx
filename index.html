@@ -3645,7 +3645,7 @@ Quisiera que me ayuden a encontrar una opción bonita para regalar. ✨
    {id:"celebrar",icon:"✿",title:"Para celebrar",subtitle:"Momentos especiales",panelTitle:"Para celebrar",panelSubtitle:"Detalles pensados para convertir la ocasión en recuerdo.",products:[{icon:"✿",title:"Ramo ¡Felicidades!",description:"Flores eternas para acompañar cumpleaños, logros y buenas noticias.",tag:"Exclusivo"},{icon:"✨",title:"Celebración eterna",description:"Un arreglo especial para esos días que merecen ser recordados.",tag:"Solo aquí"},{icon:"🎀",title:"Detalle de celebración",description:"Una propuesta lista para entregar y hacer sonreír.",tag:"Colección especial"}]},
    {id:"siempre",icon:"∞",title:"Para siempre",subtitle:"Un recuerdo eterno",panelTitle:"Para siempre",panelSubtitle:"Detalles creados para quedarse.",products:[{icon:"∞",title:"Siempre contigo",description:"Una flor eterna para representar un vínculo que permanece.",tag:"Exclusivo"},{icon:"🌷",title:"Recuerdo eterno",description:"Un detalle pensado para conservar una fecha y su significado.",tag:"Solo aquí"},{icon:"🤍",title:"Para guardar",description:"Una propuesta minimalista para regalar un recuerdo que no se marchita.",tag:"Colección especial"}]}]
  };
- let s=Object.assign({},D,JSON.parse(localStorage.getItem(K)||"{}")), edit=-1, editMode="catalog", collabEdit=-1;
+ let s=Object.assign({},D,JSON.parse(localStorage.getItem(K)||"{}")), edit=-1, editMode="catalog", collabEdit=-1, editPid="";
 
  // Limpieza inicial solicitada: borra SOLO los artículos de la sección Favoritos.
  // Se ejecuta una sola vez para no impedir que después se puedan guardar nuevos favoritos.
@@ -4108,7 +4108,7 @@ function escHtml(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<"
   }
   function moveSection(i,d){const j=i+d;if(j<0||j>=s.sections.length)return;[s.sections[i],s.sections[j]]=[s.sections[j],s.sections[i]];renderSections();save();toast("Orden actualizado")}
   async function editProduct(i,mode="catalog"){
-  editMode=mode; collabEdit=mode==="collabIndependent"?i:-1; edit=mode==="catalog"?i:-1; const arr=mode==="collabIndependent"?(Array.isArray(s.collabIndependentProducts)?s.collabIndependentProducts:[]):s.products; const p=arr[i]||{};
+  editMode=mode; collabEdit=mode==="collabIndependent"?i:-1; edit=mode==="catalog"?i:-1; const arr=mode==="collabIndependent"?(Array.isArray(s.collabIndependentProducts)?s.collabIndependentProducts:[]):s.products; const p=arr[i]||{}; editPid=String(p.pid||p.sku||"");
   ["Name","Price","OldPrice","Stock","Sku","Desc","Image","Tags","Status"].forEach(k=>set("fv2P"+k,p[{Name:"name",Price:"price",OldPrice:"oldPrice",Stock:"stock",Sku:"sku",Desc:"description",Image:"image",Tags:"tags",Status:"status"}[k]]??""));
   set("fv2PDiscount",p.discount??0);
   set("fv2PColor",p.color||"");
@@ -4146,6 +4146,12 @@ function escHtml(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<"
     showInFavorites:!!$("fv2PShowFavorites")?.checked,
     showInCollab:!!$("fv2PShowCollab")?.checked
   });
+  localStorage.setItem(K,JSON.stringify(s));
+  const persisted=normalizeMain(read(STATE,{}));
+  persisted.products=Array.isArray(s.products)?s.products:[];
+  localStorage.setItem(STATE,JSON.stringify(persisted));
+  window.florelaAdminV2Data=persisted;
+  editPid="";
   edit=-1; collabEdit=-1; const wasIndependent=editMode==="collabIndependent"; editMode="catalog"; if(wasIndependent){renderCollabIndependent();} else {renderProducts();} save();
   const editor=document.getElementById("fv2ProductEditor");
   if(editor){ editor.style.display="none"; const h=editor.querySelector("h2"); if(h) h.textContent="Editor de producto"; }
@@ -7672,33 +7678,26 @@ header .header-actions{
       if(!admin())return;
       const ed=document.getElementById('fv2ProductEditor');
       if(!ed || ed.style.display==='none')return;
-      const sku=(document.getElementById('fv2PSku')?.value||'').trim();
-      const name=(document.getElementById('fv2PName')?.value||'').trim();
-      const d=normalizeMain(read(STATE,{}));
-      if(!Array.isArray(d.products))return;
-      const p=d.products.find(x=>sku && String(x?.sku||'').trim()===sku) ||
-              d.products.find(x=>name && String(x?.name||'').trim()===name);
+      const arr=editMode==="collabIndependent"?s.collabIndependentProducts:s.products;
+      if(!Array.isArray(arr))return;
+      const target=String(editPid||'').trim();
+      const p=arr.find(x=>target && String(x?.pid||x?.sku||'').trim()===target) ||
+              arr[editMode==="collabIndependent"?collabEdit:edit];
       if(!p)return;
       const val=id=>document.getElementById(id)?.value ?? '';
       const checked=id=>!!document.getElementById(id)?.checked;
-      p.name=val('fv2PName');
-      p.price=+val('fv2PPrice')||0;
+      p.name=val('fv2PName'); p.price=+val('fv2PPrice')||0;
       p.discount=Math.max(0,Math.min(100,+val('fv2PDiscount')||0));
-      p.oldPrice=val('fv2POldPrice');
-      p.stock=+val('fv2PStock')||0;
-      p.category=val('fv2PCat');
-      p.sku=val('fv2PSku').trim()||p.sku||'';
-      p.description=val('fv2PDesc');
-      p.image=val('fv2PImage');
-      p.tags=val('fv2PTags');
-      p.status=val('fv2PStatus');
-      p.color=val('fv2PColor');
-      p.prepTime=val('fv2PPrepTime');
+      p.oldPrice=val('fv2POldPrice'); p.stock=+val('fv2PStock')||0;
+      p.category=val('fv2PCat'); p.sku=val('fv2PSku').trim()||p.sku||'';
+      p.description=val('fv2PDesc'); p.image=val('fv2PImage'); p.tags=val('fv2PTags');
+      p.status=val('fv2PStatus'); p.color=val('fv2PColor'); p.prepTime=val('fv2PPrepTime');
       p.showInCatalog=checked('fv2PShowCatalog')&&!checked('fv2PShowFavorites');
-      p.showInFavorites=checked('fv2PShowFavorites');
-      p.showInCollab=checked('fv2PShowCollab');
-      localStorage.setItem(STATE,JSON.stringify(d));
-    }catch(e){console.warn('[FlorEla V32] editor sync',e)}
+      p.showInFavorites=checked('fv2PShowFavorites'); p.showInCollab=checked('fv2PShowCollab');
+      localStorage.setItem(K,JSON.stringify(s));
+      const d=normalizeMain(read(STATE,{})); d.products=Array.isArray(s.products)?s.products:[];
+      localStorage.setItem(STATE,JSON.stringify(d)); window.florelaAdminV2Data=d;
+    }catch(e){console.warn('[FlorEla V33] editor sync',e)}
   }
   async function save(reason='change'){
     if(!admin())return false;
