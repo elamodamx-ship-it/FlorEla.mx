@@ -8436,7 +8436,9 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout
     try{return JSON.stringify(obj)}catch(e){return String(Date.now())}
   }
   async function writeCloud(reason){
-    if(!unlocked()) return false;
+    /* V3: the admin save flow itself is the authorization boundary.
+       Do not silently skip the cloud write because sessionStorage was lost or
+       because the admin gate and the persistence layer became out of sync. */
     if(busy){dirty=true;return false}
     busy=true; dirty=false;
     const data=snapshot();
@@ -8481,19 +8483,18 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout
   const nativeSet=Storage.prototype.setItem;
   Storage.prototype.setItem=function(k,v){
     const result=nativeSet.call(this,k,v);
-    if(this===localStorage && (k===KEY||k===EXTRA) && unlocked()) schedule(350);
+    if(this===localStorage && (k===KEY||k===EXTRA)) schedule(350);
     return result;
   };
   const nativeRemove=Storage.prototype.removeItem;
   Storage.prototype.removeItem=function(k){
     const result=nativeRemove.call(this,k);
-    if(this===localStorage && (k===KEY||k===EXTRA) && unlocked()) schedule(350);
+    if(this===localStorage && (k===KEY||k===EXTRA)) schedule(350);
     return result;
   };
 
   // También cubre acciones que no pasen por localStorage inmediatamente.
   document.addEventListener('click',e=>{
-    if(!unlocked())return;
     const b=e.target.closest?.('#fv2Save,#fv2SaveProduct,#fv2SaveStore,#fv2SaveMedia,#flCollabSave,#fv2AddProduct,#fv2AddCollabIndependent');
     if(b) schedule(700);
   },true);
@@ -8503,11 +8504,12 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout
   window.addEventListener('florela-admin-unlocked',()=>setTimeout(()=>schedule(150),150));
 
   // Reintento al volver a la pestaña si quedó un cambio pendiente.
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&unlocked())schedule(250)});
-  window.addEventListener('online',()=>{if(unlocked())schedule(250)});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden && document.getElementById('flAdminV2')) schedule(250)});
+  window.addEventListener('online',()=>{if(document.getElementById('flAdminV2')) schedule(250)});
 
   window.__florelaV17SaveNow=()=>writeCloud('manual');
   window.__florelaV17Schedule=()=>schedule(0);
+  window.__florelaCloudStatus=()=>({adminPage:!!document.getElementById('flAdminV2'),endpoint:REST});
 })();
 </script>
 <script id="florela-cloud-refresh-v22-unified">
