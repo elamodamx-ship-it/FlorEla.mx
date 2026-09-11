@@ -3910,7 +3910,7 @@ document.addEventListener("input",function(e){
    s.collabSectionEnabled=enabled;
    if(enabled) s.collabElamodaAvailable=true;
    if(sec) sec.on=enabled;
- } function save(){collect();syncCollabSectionState();s.favoritesOverrides=s.favoritesOverrides||{};const favChecks=Array.from(document.querySelectorAll("#fv2FavProductChoices input[data-favprod]:checked")); if(favChecks.length)s.favoritesProducts=favChecks.map(x=>x.dataset.favprod); window.__florelaAdminProducts=s.products; localStorage.setItem(K,JSON.stringify(s));window.__florelaSocialRender?.();window.dispatchEvent(new Event("florela-social-updated"));updatePresentationContent();applyBuilderToStore();applyBannerPhrases();window.__florelaRenderCatalog?.();window.__florelaGiftWorksRender?.();window.__florelaCollabRender?.();window.__florelaRenderCollabSection?.();window.__florelaApplyBuilderVisibility?.();window.dispatchEvent(new Event("florela-collab-updated"));toast("✓ Cambios guardados correctamente");}
+ } function save(){collect();syncCollabSectionState();s.favoritesOverrides=s.favoritesOverrides||{};const favChecks=Array.from(document.querySelectorAll("#fv2FavProductChoices input[data-favprod]:checked")); if(favChecks.length)s.favoritesProducts=favChecks.map(x=>x.dataset.favprod); window.__florelaAdminProducts=s.products; localStorage.setItem(K,JSON.stringify(s));window.__florelaSocialRender?.();window.dispatchEvent(new Event("florela-social-updated"));updatePresentationContent();applyBuilderToStore();applyBannerPhrases();window.__florelaRenderCatalog?.();window.__florelaGiftWorksRender?.();window.__florelaCollabRender?.();window.__florelaRenderCollabSection?.();window.__florelaApplyBuilderVisibility?.();window.dispatchEvent(new Event("florela-collab-updated"));try{setTimeout(()=>window.__florelaV17SaveNow?.(),50)}catch(e){}toast("✓ Cambios guardados correctamente");}
  
 function applyConstructorToStore(){
   const sectionMap = {
@@ -7609,7 +7609,6 @@ window.__florelaIntegrityCheck=()=>{apply();collab();window.__florelaRenderCatal
         sessionStorage.setItem(SESSION_KEY,'1');
         /* La contraseña del administrador también habilita la autenticación
            de sincronización del mismo proyecto. No se envía ni se muestra aquí. */
-        sessionStorage.setItem('florelaSyncSecret',BROWSER_SYNC_TOKEN);
       }catch(x){}
       try{window.dispatchEvent(new Event('florela-admin-unlocked'))}catch(x){}
       closeGate(); return true
