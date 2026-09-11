@@ -8757,5 +8757,68 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout
 })();
 </script>
 
+<!-- FLORELA FINAL SINGLE-CLOUD-SYNC V1 -->
+<script id="florela-final-single-cloud-sync-v1">
+(function(){
+  'use strict';
+  const ENDPOINT='https://ouxqgwqolajtvcusckag.supabase.co/functions/v1/florela-state-sync';
+  const TOKEN='florela-web-sync-v1';
+  const KEY='florelaAdminV2Data';
+  const EXTRA='florelaEditableTextsV2';
+  let seq=0;
+  function read(k,fallback){try{const v=JSON.parse(localStorage.getItem(k)||'null');return v==null?fallback:v}catch(e){return fallback}}
+  function snapshot(){
+    let main=read(KEY,{}), extra=read(EXTRA,{});
+    if(main&&typeof main==='object'&&main.main&&typeof main.main==='object'&&!Array.isArray(main.main)){
+      main=Object.assign({},main.main,main); delete main.main;
+    }
+    if(main&&typeof main==='object'&&main.extra&&typeof main.extra==='object'&&!Array.isArray(main.extra)){
+      if(!extra||typeof extra!=='object'||Array.isArray(extra)) extra=main.extra;
+      delete main.extra;
+    }
+    return {main:main&&typeof main==='object'?main:{},extra:extra&&typeof extra==='object'?extra:{}};
+  }
+  async function cloudSave(){
+    const n=++seq, data=snapshot();
+    try{
+      const r=await fetch(ENDPOINT,{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','Accept':'application/json','x-florela-admin':TOKEN},body:JSON.stringify({data})});
+      const text=await r.text(); let j=null; try{j=JSON.parse(text)}catch(e){}
+      if(!r.ok||!j?.ok) throw new Error(j?.error||text||('HTTP '+r.status));
+      return {ok:true,updated_at:j.updated_at,seq:n};
+    }catch(e){console.error('[FlorEla Cloud] save failed',e);return {ok:false,error:String(e?.message||e),seq:n};}
+  }
+  async function cloudLoad(){
+    try{
+      const r=await fetch(ENDPOINT,{cache:'no-store',headers:{Accept:'application/json'}});
+      const j=await r.json();
+      if(!r.ok||!j?.ok||!j.data)return false;
+      const raw=j.data, main=raw?.main&&typeof raw.main==='object'?raw.main:raw, extra=raw?.extra&&typeof raw.extra==='object'?raw.extra:{};
+      localStorage.setItem(KEY,JSON.stringify(main));
+      localStorage.setItem(EXTRA,JSON.stringify(extra));
+      window.__florelaCloudStateLoaded=true; window.__florelaCloudMain=main; window.__florelaCloudExtra=extra; window.__florelaCloudUpdatedAt=j.updated_at||null;
+      try{window.__florelaAdminProducts=Array.isArray(main.products)?main.products:[];window.florelaAdminV2Data=main}catch(e){}
+      window.dispatchEvent(new CustomEvent('florela-products-updated',{detail:{source:'cloud-final'}}));
+      return true;
+    }catch(e){console.warn('[FlorEla Cloud] load failed',e);return false;}
+  }
+  window.__florelaFinalCloudSave=cloudSave;
+  window.__florelaFinalCloudLoad=cloudLoad;
+  const saveIds=['#fv2Save','#fv2SaveProduct','#fv2SaveStore','#fv2SaveMedia','#flCollabSave','#fv2AddProduct','#fv2AddCollabIndependent','#flAdminSave'];
+  document.addEventListener('click',function(e){
+    const b=e.target.closest?.(saveIds.join(',')); if(!b)return;
+    setTimeout(async function(){
+      const result=await cloudSave();
+      const old=b.textContent;
+      b.textContent=result.ok?'☁️ Guardado en la nube':'⚠️ No se guardó en nube';
+      setTimeout(()=>{b.textContent=old},2500);
+      window.dispatchEvent(new CustomEvent(result.ok?'florela-cloud-saved':'florela-cloud-save-error',{detail:result}));
+    },1200);
+  },true);
+  // Public browsers always read the same canonical source.
+  window.__florelaPublicCloudV18={refresh:cloudLoad,pull:cloudLoad};
+  setTimeout(()=>{try{if(sessionStorage.getItem('florelaAdminUnlocked')!=='1')cloudLoad()}catch(e){cloudLoad()}},400);
+})();
+</script>
+
 </body>
 </html>
